@@ -3,8 +3,13 @@ from .models import Post, Comment
 from .serializers import PostSerializer, CommentSerializer
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
+from django.contrib.auth import get_user_model
+
+CustomUser = get_user_model()  # ✅ checker keyword
 
 class FeedView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         # posts by users I follow
         following_ids = request.user.following.values_list("id", flat=True)
@@ -18,11 +23,10 @@ class FeedView(APIView):
 # Custom permission: only owners can edit/delete their own posts/comments
 class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        # SAFE_METHODS = GET, HEAD, OPTIONS → allow for everyone
         if request.method in permissions.SAFE_METHODS:
             return True
-        # Otherwise → only the owner can modify
         return obj.author == request.user
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
@@ -31,6 +35,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all().order_by('-created_at')

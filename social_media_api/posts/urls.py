@@ -1,4 +1,3 @@
-# posts/urls.py (add feed)
 from django.urls import path, include
 from .views import FeedView, PostViewSet, CommentViewSet
 from rest_framework.routers import DefaultRouter

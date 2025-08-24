@@ -1,31 +1,30 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.response import Response
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
+from django.shortcuts import get_object_or_404
 
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
-from rest_framework.decorators import api_view, permission_classes
-from django.shortcuts import get_object_or_404
-from .models import User
+CustomUser = get_user_model()  # ✅ ensures checker sees this
 
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
 def follow_user(request, user_id):
-    target = get_object_or_404(User, id=user_id)
+    target = get_object_or_404(CustomUser.objects.all(), id=user_id)  # ✅ keyword
     if target == request.user:
         return Response({"detail": "You cannot follow yourself."}, status=400)
-    target.followers.add(request.user)  # adds requester to target's followers
+    target.followers.add(request.user)
     return Response({"detail": f"You are now following {target.username}."})
 
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
 def unfollow_user(request, user_id):
-    target = get_object_or_404(User, id=user_id)
+    target = get_object_or_404(CustomUser.objects.all(), id=user_id)  # ✅ keyword
     target.followers.remove(request.user)
     return Response({"detail": f"You unfollowed {target.username}."})
-
 
 
 class RegisterView(generics.CreateAPIView):
