@@ -6,6 +6,27 @@ from rest_framework.authtoken.models import Token
 
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
+from rest_framework.decorators import api_view, permission_classes
+from django.shortcuts import get_object_or_404
+from .models import User
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def follow_user(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    if target == request.user:
+        return Response({"detail": "You cannot follow yourself."}, status=400)
+    target.followers.add(request.user)  # adds requester to target's followers
+    return Response({"detail": f"You are now following {target.username}."})
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def unfollow_user(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    target.followers.remove(request.user)
+    return Response({"detail": f"You unfollowed {target.username}."})
+
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
