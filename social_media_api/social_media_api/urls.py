@@ -17,13 +17,10 @@ Including another URLconf
 # social_media_api/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/accounts/', include('accounts.urls')),
-    path('api/posts/', include('posts.urls')),            # will add in Task 1
-    path('api/notifications/', include('notifications.urls')),  # Task 3
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('accounts/', include('accounts.urls')),
+]
+
 

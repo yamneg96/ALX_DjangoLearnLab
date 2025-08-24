@@ -1,38 +1,40 @@
-# accounts/views.py
-from rest_framework.views import APIView
+from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework import permissions, status
+from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
-from .serializers import UserRegisterSerializer, LoginSerializer
-from .models import User
 
-class RegisterView(APIView):
-    permission_classes = [permissions.AllowAny]
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
-    def post(self, request):
-        serializer = UserRegisterSerializer(data=request.data)
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+
+
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-class LoginView(APIView):
-    permission_classes = [permissions.AllowAny]
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        user = authenticate(username=username, password=password)
 
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        if not user:
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
-class ProfileView(APIView):
-    def get(self, request):
-        user = request.user
-        token = Token.objects.get(user=user).key
+        token, created = Token.objects.get_or_create(user=user)
         return Response({
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "bio": user.bio,
-            "followers_count": user.followers.count(),
-            "following_count": user.following.count(),
-            "token": token,
+            "token": token.key,
+            "user": UserSerializer(user).data
         })
+
+
+class ProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
